@@ -21,7 +21,13 @@ function iniciarCheckIn(passengerId) {
 }
 
 function validarPasaporte(id) {
-  // TODO
+  return new Promise((resolve) => setTimeout(resolve, 1500)).then(() => {
+    if (id % 2 === 1) {
+      return;
+    } else {
+      throw new Error("Invalid Passport");
+    }
+  });
 }
 
 function verificarRestriccionesVisa(id) {
