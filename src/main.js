@@ -44,8 +44,12 @@ const toErrorMessage = (error) =>
     ? String(error.message)
     : String(error);
 
-const createAppError = (message, reported = false) =>
-  Object.assign(new Error(message), { reported });
+const createAppError = (message, options = {}) => ({
+  message,
+  reported: false,
+  step: null,
+  ...options,
+});
 
 const normalizePassengerId = (value) => Number.parseInt(String(value).trim(), 10);
 const isValidPassengerId = (id) => Number.isInteger(id) && id > 0;
@@ -53,27 +57,17 @@ const createPassengerName = (passengerId) => `Pasajero ${passengerId}`;
 const createSeatNumber = () => `${randomFrom(seatRows)}${randomFrom(seatLetters)}`;
 const createSequenceUpdate = (step, status, message) => ({ step, status, message });
 
-const createSequenceState = () =>
-  requestSteps.reduce(
-    (state, step) => ({
-      ...state,
-      [step.key]: {
-        status: "pending",
-        message: step.pendingMessage,
-      },
-    }),
-    {},
-  );
-
-const createSequenceMarkup = (sequenceState) =>
+const createSequenceMarkup = () =>
   requestSteps
     .map((step, index) => {
-      const currentStep = sequenceState[step.key];
-
       return `
-        <li class="log-entry log-entry--${sequenceClassNames[currentStep.status]}">
+        <li
+          class="log-entry log-entry--${sequenceClassNames.pending}"
+          data-step="${step.key}"
+          data-status="pending"
+        >
           <span class="log-entry__meta">Paso ${index + 1} · ${step.label}</span>
-          <p>${currentStep.message}</p>
+          <p class="log-entry__message">${step.pendingMessage}</p>
         </li>
       `;
     })
@@ -161,17 +155,21 @@ function generarPaseAbordar(datos) {
 
 const toStepUpdates = (updates) => (Array.isArray(updates) ? updates : [updates]);
 
-const applySequenceUpdates = (sequenceState, updates) =>
-  toStepUpdates(updates).reduce(
-    (nextState, update) => ({
-      ...nextState,
-      [update.step]: {
-        ...nextState[update.step],
-        status: update.status,
-        message: update.message,
-      },
-    }),
-    sequenceState,
+const readSequenceState = (elements) =>
+  requestSteps.reduce(
+    (state, step) => {
+      const stepElement = elements.logSection.querySelector(`[data-step="${step.key}"]`);
+      const messageElement = stepElement?.querySelector(".log-entry__message");
+
+      return {
+        ...state,
+        [step.key]: {
+          status: stepElement?.dataset.status ?? "pending",
+          message: messageElement?.textContent ?? step.pendingMessage,
+        },
+      };
+    },
+    {},
   );
 
 const createFailureUpdates = (sequenceState, message) =>
@@ -198,7 +196,10 @@ const settleConcurrentStep = (promise, step, successMessage, notify) =>
       return { status: "fulfilled", value };
     })
     .catch((error) => {
-      const appError = createAppError(toErrorMessage(error), true);
+      const appError = createAppError(toErrorMessage(error), {
+        reported: true,
+        step,
+      });
       notify(createSequenceUpdate(step, "error", `Error: ${appError.message}`));
       return { status: "rejected", reason: appError, step };
     });
@@ -216,7 +217,10 @@ const runSequenceStep = (promise, step, successMessage, notify) =>
       return value;
     })
     .catch((error) => {
-      const appError = createAppError(toErrorMessage(error), true);
+      const appError = createAppError(toErrorMessage(error), {
+        reported: true,
+        step,
+      });
       notify(createSequenceUpdate(step, "error", `Error: ${appError.message}`));
       throw appError;
     });
@@ -225,7 +229,10 @@ const ensureNoFailures = (results) => {
   const failure = results.find((result) => result.status === "rejected");
 
   if (failure) {
-    throw Object.assign(failure.reason, { step: failure.step });
+    throw createAppError(toErrorMessage(failure.reason), {
+      reported: failure.reason?.reported ?? true,
+      step: failure.step,
+    });
   }
 
   return results.map((result) => result.value);
@@ -314,8 +321,23 @@ const renderError = (elements, message) => {
   setStatus(elements, "error", "Con error");
 };
 
-const renderSequence = (elements, sequenceState) => {
-  elements.logSection.innerHTML = createSequenceMarkup(sequenceState);
+const renderSequence = (elements) => {
+  elements.logSection.innerHTML = createSequenceMarkup();
+};
+
+const renderSequenceUpdates = (elements, updates) => {
+  toStepUpdates(updates).forEach((update) => {
+    const stepElement = elements.logSection.querySelector(`[data-step="${update.step}"]`);
+    const messageElement = stepElement?.querySelector(".log-entry__message");
+
+    if (!stepElement || !messageElement) {
+      return;
+    }
+
+    stepElement.dataset.status = update.status;
+    stepElement.className = `log-entry log-entry--${sequenceClassNames[update.status]}`;
+    messageElement.textContent = update.message;
+  });
 };
 
 const renderEmptyBoardingPass = (elements) => {
@@ -342,22 +364,16 @@ const createElements = () => ({
 const handleSubmit = (elements) => (event) => {
   event.preventDefault();
 
-  let sequenceState = createSequenceState();
-  const updateSequence = (updates) => {
-    sequenceState = applySequenceUpdates(sequenceState, updates);
-    renderSequence(elements, sequenceState);
-  };
-
   const passengerId = normalizePassengerId(elements.input.value);
 
   clearError(elements);
   renderEmptyBoardingPass(elements);
-  renderSequence(elements, sequenceState);
+  renderSequence(elements);
 
   if (!isValidPassengerId(passengerId)) {
     const message = "Ingresa un ID numérico mayor a 0.";
 
-    updateSequence([
+    renderSequenceUpdates(elements, [
       createSequenceUpdate("passport", "error", `Error: ${message}`),
       createSequenceUpdate("visa", "blocked", "Pendiente de un ID válido."),
       createSequenceUpdate("seat", "blocked", "No ejecutado por un error previo."),
@@ -374,18 +390,17 @@ const handleSubmit = (elements) => (event) => {
   setBusy(elements, true);
   setStatus(elements, "processing", "Procesando");
 
-  iniciarCheckIn(passengerId, updateSequence)
+  iniciarCheckIn(passengerId, (updates) => renderSequenceUpdates(elements, updates))
     .then((boardingPass) => {
       renderBoardingPass(elements, boardingPass);
     })
     .catch((error) => {
       const errorMessage = toErrorMessage(error);
 
-      if (!error?.reported || errorMessage === "Tiempo de espera agotado") {
-        updateSequence(createFailureUpdates(sequenceState, errorMessage));
-      } else {
-        updateSequence(createFailureUpdates(sequenceState, errorMessage));
-      }
+      renderSequenceUpdates(
+        elements,
+        createFailureUpdates(readSequenceState(elements), errorMessage),
+      );
 
       renderError(elements, errorMessage);
     })
@@ -402,7 +417,7 @@ const initializeApp = () => {
   }
 
   renderEmptyBoardingPass(elements);
-  renderSequence(elements, createSequenceState());
+  renderSequence(elements);
   setStatus(elements, "idle", "Listo");
   elements.form.addEventListener("submit", handleSubmit(elements));
 };
