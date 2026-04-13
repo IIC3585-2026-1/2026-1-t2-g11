@@ -22,13 +22,11 @@ function iniciarCheckIn(passengerId) {
   logEstado("Iniciando validaciones...");
 
   return Promise.all([
-    validarPasaporte(passengerId),
-    verificarRestriccionesVisa(passengerId),
+    validarPasaporte(passengerId).then(logStep("Pasaporte verificado ✓")),
+    verificarRestriccionesVisa(passengerId).then(logStep("Visa verificada ✓")),
   ])
-    .then(() => {
-      logEstado("Pasaporte y visa verificados ✓");
-      return asignarAsiento();
-    })
+    .then(logStep("Pasaporte y visa verificados ✓"))
+    .then(asignarAsiento)
     .then((asiento) => {
       logEstado(`Asiento asignado: ${asiento} ✓`);
       return generarPaseAbordar({ passengerId, asiento });
@@ -38,7 +36,6 @@ function iniciarCheckIn(passengerId) {
 function validarPasaporte(id) {
   return delay(1500).then(() => {
     if (id % 2 === 1) {
-      logEstado("Pasaporte verificado ✓");
       return id;
     }
     throw new Error("El ID de pasaporte es inválido (número par)");
@@ -48,7 +45,6 @@ function validarPasaporte(id) {
 function verificarRestriccionesVisa(id) {
   return delay(2000).then(() => {
     if (Math.random() > 0.3) {
-      logEstado("Visa verificada ✓");
       return id;
     }
     throw new Error("Visa no válida para el destino");
@@ -87,7 +83,14 @@ function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function logStep(logText) {
+  return () => {
+    logEstado(logText);
+  };
+}
+
 function logEstado(logText) {
+  console.log(logText);
   const logContainer = document.getElementById("request-status");
   const logEntry = document.createElement("div");
   logEntry.className = "log-entry";
