@@ -263,4 +263,4 @@ npm run dev
 # Uso de IA
 
 - Usé IA para ayudarme con el tema de git: https://gemini.google.com/share/8538d101fa00
-- Me equivoqué con hacer cambios en master y no hacer rama antes, entonces pedí ayuda también con eso: https://gemini.google.com/share/1364906f1d8f 
+- Me equivoqué con hacer cambios en master y no hacer rama antes, entonces pedí ayuda también con eso: https://gemini.google.com/share/1364906f1d8f

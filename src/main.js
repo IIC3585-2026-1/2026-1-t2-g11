@@ -103,13 +103,12 @@ function logEstado(logText, color) {
   logEntry.className = "log-entry";
   logEntry.textContent = `${new Date().toLocaleTimeString()} - ${logText}`;
 
-	if (color !== undefined) {
-  logEntry.style.color = color;
-	}
+  if (color !== undefined) {
+    logEntry.style.color = color;
+  }
 
   logContainer.appendChild(logEntry);
 }
-
 
 function mostrarResultado(boardingPass) {
   const html = `<header class="boarding-pass__header">
@@ -150,7 +149,7 @@ function mostrarResultado(boardingPass) {
 }
 
 function mostrarError(errorText) {
-	logEstado(errorText, "red");
+  logEstado(errorText, "red");
   const errorBanner = document.getElementById("error-banner");
   errorBanner.textContent = errorText;
   errorBanner.hidden = false;
