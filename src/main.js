@@ -244,16 +244,8 @@ const resetLogs = (elements) => {
   elements.logSection.innerHTML = createEmptyLogMarkup();
 };
 
-const appendLog = (elements, entry) => {
-  const isIdleLog = elements.logSection.firstElementChild?.classList.contains(
-    "log-entry--idle",
-  );
-
-  if (isIdleLog) {
-    elements.logSection.innerHTML = "";
-  }
-
-  elements.logSection.insertAdjacentHTML("beforeend", createLogMarkup(entry));
+const renderCurrentLog = (elements, entry) => {
+  elements.logSection.innerHTML = createLogMarkup(entry);
 };
 
 const renderEmptyBoardingPass = (elements) => {
@@ -289,7 +281,7 @@ const handleSubmit = (elements) => (event) => {
   if (!isValidPassengerId(passengerId)) {
     const message = "Ingresa un ID numérico mayor a 0.";
 
-    appendLog(elements, createLogEntry("error", `Error: ${message}`));
+    renderCurrentLog(elements, createLogEntry("error", `Error: ${message}`));
     renderError(elements, message);
     return;
   }
@@ -297,13 +289,16 @@ const handleSubmit = (elements) => (event) => {
   setBusy(elements, true);
   setStatus(elements, "processing", "Procesando");
 
-  iniciarCheckIn(passengerId, (entry) => appendLog(elements, entry))
+  iniciarCheckIn(passengerId, (entry) => renderCurrentLog(elements, entry))
     .then((boardingPass) => {
       renderBoardingPass(elements, boardingPass);
     })
     .catch((error) => {
       if (!error?.reported) {
-        appendLog(elements, createLogEntry("error", `Error: ${toErrorMessage(error)}`));
+        renderCurrentLog(
+          elements,
+          createLogEntry("error", `Error: ${toErrorMessage(error)}`),
+        );
       }
 
       renderError(elements, toErrorMessage(error));
