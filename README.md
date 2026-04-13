@@ -2,13 +2,10 @@
 
 ## Integrantes Grupo 11 / Tarea 2
 
-Gary Yael Díaz Crisosto <gdiaz1@uc.cl>
-
-David Elías Leal Olivares <dlealo@estudiante.uc.cl>
-
-Jaime Alejandro Pérez Lisboa <jaime.perez@uc.cl>
-
-Larry Andrés Uribe Araya <jlarry@uc.cl>
+- Gary Yael Díaz Crisosto <gdiaz1@uc.cl>
+- David Elías Leal Olivares <dlealo@estudiante.uc.cl>
+- Jaime Alejandro Pérez Lisboa <jaime.perez@uc.cl>
+- Larry Andrés Uribe Araya <jlarry@uc.cl>
 
 ## Objetivo del trabajo
 
