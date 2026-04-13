@@ -1,8 +1,11 @@
 # AsyncAir - Check-in asincrónico y funcional
 
-## Integrantes
+## Integrantes Grupo 11 / Tarea 2
 
-- Completar con nombres del grupo.
+Gary Yael Díaz Crisosto <gdiaz1@uc.cl>
+David Elías Leal Olivares <dlealo@estudiante.uc.cl>
+Jaime Alejandro Pérez Lisboa <jaime.perez@uc.cl>
+Larry Andrés Uribe Araya <jlarry@uc.cl>
 
 ## Objetivo del trabajo
 
