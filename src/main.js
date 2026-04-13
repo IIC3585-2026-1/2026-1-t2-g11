@@ -7,6 +7,9 @@ document.getElementById("passenger-submit").onclick = (event) => {
   const submitButton = document.getElementById("passenger-submit");
   submitButton.disabled = true;
 
+  clearBoardingPass();
+  clearStatusMessages();
+
   Promise.race([
     iniciarCheckIn(passengerId),
     delay(4000).then(() => {
@@ -134,4 +137,16 @@ function mostrarResultado(boardingPass) {
 `;
 
   document.getElementById("boarding-pass").innerHTML = html;
+}
+
+function clearBoardingPass() {
+  const boardingPassElement = document.getElementById("boarding-pass");
+  boardingPassElement.innerHTML = "Cargando...";
+}
+
+function clearStatusMessages() {
+  const statusElement = document.getElementById("request-status");
+  Array.from(statusElement.children).forEach((child) =>
+    statusElement.removeChild(child),
+  );
 }
