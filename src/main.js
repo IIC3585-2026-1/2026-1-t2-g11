@@ -17,7 +17,7 @@ document.getElementById("passenger-submit").onclick = (event) => {
     }),
   ])
     .then((pase) => mostrarResultado(pase))
-    .catch((error) => console.log(error) /* mostrarError(error.message)*/)
+    .catch((error) => mostrarError(error.message))
     .finally(() => (submitButton.disabled = false));
 };
 
@@ -92,12 +92,17 @@ function logStep(logText) {
   };
 }
 
-function logEstado(logText) {
+function logEstado(logText, color) {
   console.log(logText);
   const logContainer = document.getElementById("request-status");
   const logEntry = document.createElement("div");
   logEntry.className = "log-entry";
   logEntry.textContent = `${new Date().toLocaleTimeString()} - ${logText}`;
+
+	if (color !== undefined) {
+  logEntry.style.color = color;
+	}
+
   logContainer.appendChild(logEntry);
 }
 
@@ -139,9 +144,13 @@ function mostrarResultado(boardingPass) {
   document.getElementById("boarding-pass").innerHTML = html;
 }
 
+function mostrarError(errorText) {
+	logEstado(errorText, "red");
+}
+
 function clearBoardingPass() {
   const boardingPassElement = document.getElementById("boarding-pass");
-  boardingPassElement.innerHTML = "Cargando...";
+  boardingPassElement.innerHTML = "";
 }
 
 function clearStatusMessages() {
