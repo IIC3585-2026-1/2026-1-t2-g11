@@ -1,6 +1,6 @@
 import "./styles.css";
 
-// TODO revizar si esta función realmente es funcional
+// Función impura, es el entrypoint
 document.getElementById("passenger-submit").onclick = (event) => {
   event.preventDefault();
   const passengerId = document.getElementById("passenger-id").value;
@@ -21,6 +21,7 @@ document.getElementById("passenger-submit").onclick = (event) => {
     .finally(() => (submitButton.disabled = false));
 };
 
+// Función impura. Side-effects necesarios para cambiar DOM.
 function iniciarCheckIn(passengerId) {
   logEstado("Iniciando validaciones...");
 
@@ -36,6 +37,8 @@ function iniciarCheckIn(passengerId) {
     });
 }
 
+// Funciones puras de la API. En estricto rigor no pueden ser puras ya que son
+// llamadas a una API externa, pero para este proyecto, la simulación es pura.
 function validarPasaporte(id) {
   return delay(1500).then(() => {
     if (id % 2 === 1) {
@@ -86,6 +89,7 @@ function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// Funciones para manipular DOM.
 function logStep(logText) {
   return () => {
     logEstado(logText);
