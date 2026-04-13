@@ -243,18 +243,26 @@ button:disabled {
 
 .log-entry--info {
   border-left: 4px solid var(--info);
+  background: rgba(32, 84, 184, 0.08);
 }
 
 .log-entry--success {
   border-left: 4px solid var(--success);
+  background: rgba(0, 57, 166, 0.08);
 }
 
 .log-entry--error {
   border-left: 4px solid var(--error);
+  background: rgba(213, 43, 30, 0.08);
 }
 
 .log-entry--idle {
   border-style: dashed;
+}
+
+.log-entry--blocked {
+  opacity: 0.72;
+  border-left: 4px solid rgba(12, 33, 72, 0.22);
 }
 
 .log-entry__meta {

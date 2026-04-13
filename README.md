@@ -20,7 +20,7 @@ En el estado actual del repositorio se implementó lo siguiente:
 - una interfaz funcional en `index.html` conectada con `src/main.js`,
 - un formulario con input numérico para el ID del pasajero,
 - un botón que se bloquea mientras el check-in está en ejecución,
-- una consola visual que va mostrando la etapa actual del proceso en tiempo real,
+- una secuencia visual fija de pasos que se actualiza en tiempo real,
 - un banner de error para mostrar fallos de manera clara,
 - una tarjeta final de boarding pass cuando el flujo termina exitosamente,
 - estilos visuales en rojo, azul y blanco para dar una identidad consistente a la interfaz.
@@ -49,7 +49,7 @@ El proceso completo sigue esta secuencia:
 
 1. El usuario ingresa un ID y envía el formulario.
 2. Se valida primero que el ID sea un número válido mayor a 0.
-3. Se actualiza el estado visible del proceso en el DOM.
+3. Se actualiza una secuencia visible del proceso en el DOM.
 4. Se ejecutan en paralelo las promesas de pasaporte y visa con `Promise.all`.
 5. Si alguna falla, se captura el error y se informa al usuario.
 6. Si ambas terminan bien, se asigna un asiento.
@@ -87,9 +87,9 @@ Esta parte fue agregada de forma explícita para cubrir el requisito de mostrar 
 La interfaz presenta los errores y el estado de dos maneras:
 
 - Un banner visible con el mensaje del error.
-- Una consola de estado que reemplaza el mensaje anterior por la etapa actual.
+- Una secuencia de pasos que muestra qué etapa está pendiente, en curso, completada o detenida por error.
 
-Ejemplos de mensajes que puede ver el usuario en esa consola:
+Ejemplos de mensajes que puede ver el usuario en esa secuencia:
 
 - `Iniciando validaciones...`
 - `Pasaporte verificado`
@@ -107,7 +107,7 @@ Además, se aplicó CSS para diferenciar visualmente:
 
 La interfaz usa una paleta rojo, azul y blanco para mantener una presentación consistente y fácil de distinguir durante la demostración.
 
-Esto mejora la experiencia del usuario y también ayuda a explicar el comportamiento asincrónico durante la presentación.
+Esto mejora la experiencia del usuario y también ayuda a explicar el comportamiento asincrónico durante la presentación, porque cada comprobación queda visible aunque el flujo siga avanzando.
 
 ## Bonus implementado
 
@@ -198,7 +198,7 @@ Para transmitir bien el trabajo a la clase, recomendamos explicar estas ideas en
 3. Por qué `Promise.all` sirve para la parte concurrente.
 4. Por qué el asiento se asigna solo después de validar todo.
 5. Cómo se captura cualquier error y se detiene la cadena.
-6. Cómo la consola visual del DOM permite observar el estado del proceso.
+6. Cómo la secuencia visual del DOM permite observar el estado del proceso.
 7. Qué parte del código responde al enfoque funcional.
 
 ## Uso de IA

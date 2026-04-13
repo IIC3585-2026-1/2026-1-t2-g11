@@ -2,15 +2,38 @@ import "./styles.css";
 
 const seatRows = Object.freeze(Array.from({ length: 12 }, (_, index) => index + 1));
 const seatLetters = Object.freeze(["A", "B", "C", "D", "E", "F"]);
-const logLabels = Object.freeze({
-  info: "Info",
-  success: "OK",
-  error: "Error",
-});
 const timeoutMs = 4000;
 const emptyBoardingPassMessage =
   "El pase de abordar aparecerá aquí cuando el check-in termine correctamente.";
-const emptyLogMessage = "Esperando una solicitud...";
+const requestSteps = Object.freeze([
+  {
+    key: "passport",
+    label: "Pasaporte",
+    pendingMessage: "Esperando validación",
+  },
+  {
+    key: "visa",
+    label: "Visa",
+    pendingMessage: "Esperando validación",
+  },
+  {
+    key: "seat",
+    label: "Asiento",
+    pendingMessage: "Pendiente de validaciones",
+  },
+  {
+    key: "boardingPass",
+    label: "Pase de abordar",
+    pendingMessage: "Pendiente de asignación",
+  },
+]);
+const sequenceClassNames = Object.freeze({
+  pending: "idle",
+  active: "info",
+  success: "success",
+  error: "error",
+  blocked: "blocked",
+});
 
 const byId = (id) => document.getElementById(id);
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -28,30 +51,33 @@ const normalizePassengerId = (value) => Number.parseInt(String(value).trim(), 10
 const isValidPassengerId = (id) => Number.isInteger(id) && id > 0;
 const createPassengerName = (passengerId) => `Pasajero ${passengerId}`;
 const createSeatNumber = () => `${randomFrom(seatRows)}${randomFrom(seatLetters)}`;
+const createSequenceUpdate = (step, status, message) => ({ step, status, message });
 
-const createLogEntry = (type, message) => ({
-  type,
-  message,
-  time: new Date().toLocaleTimeString("es-UY", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  }),
-});
+const createSequenceState = () =>
+  requestSteps.reduce(
+    (state, step) => ({
+      ...state,
+      [step.key]: {
+        status: "pending",
+        message: step.pendingMessage,
+      },
+    }),
+    {},
+  );
 
-const createEmptyLogMarkup = () => `
-  <li class="log-entry log-entry--idle">
-    <span class="log-entry__meta">Sistema</span>
-    <p>${emptyLogMessage}</p>
-  </li>
-`;
+const createSequenceMarkup = (sequenceState) =>
+  requestSteps
+    .map((step, index) => {
+      const currentStep = sequenceState[step.key];
 
-const createLogMarkup = (entry) => `
-  <li class="log-entry log-entry--${entry.type}">
-    <span class="log-entry__meta">${logLabels[entry.type]} · ${entry.time}</span>
-    <p>${entry.message}</p>
-  </li>
-`;
+      return `
+        <li class="log-entry log-entry--${sequenceClassNames[currentStep.status]}">
+          <span class="log-entry__meta">Paso ${index + 1} · ${step.label}</span>
+          <p>${currentStep.message}</p>
+        </li>
+      `;
+    })
+    .join("");
 
 const createEmptyBoardingPassMarkup = () => `
   <p>${emptyBoardingPassMessage}</p>
@@ -133,27 +159,65 @@ function generarPaseAbordar(datos) {
   }));
 }
 
-const settleConcurrentStep = (promise, successMessage, notify) =>
+const toStepUpdates = (updates) => (Array.isArray(updates) ? updates : [updates]);
+
+const applySequenceUpdates = (sequenceState, updates) =>
+  toStepUpdates(updates).reduce(
+    (nextState, update) => ({
+      ...nextState,
+      [update.step]: {
+        ...nextState[update.step],
+        status: update.status,
+        message: update.message,
+      },
+    }),
+    sequenceState,
+  );
+
+const createFailureUpdates = (sequenceState, message) =>
+  requestSteps.flatMap((step) => {
+    const currentStep = sequenceState[step.key];
+
+    if (currentStep.status === "success" || currentStep.status === "error") {
+      return [];
+    }
+
+    if (currentStep.status === "active") {
+      return [createSequenceUpdate(step.key, "error", `Error: ${message}`)];
+    }
+
+    return [
+      createSequenceUpdate(step.key, "blocked", "No ejecutado por un error previo."),
+    ];
+  });
+
+const settleConcurrentStep = (promise, step, successMessage, notify) =>
   promise
     .then((value) => {
-      notify(createLogEntry("success", successMessage));
+      notify(createSequenceUpdate(step, "success", successMessage));
       return { status: "fulfilled", value };
     })
     .catch((error) => {
       const appError = createAppError(toErrorMessage(error), true);
-      notify(createLogEntry("error", `Error: ${appError.message}`));
-      return { status: "rejected", reason: appError };
+      notify(createSequenceUpdate(step, "error", `Error: ${appError.message}`));
+      return { status: "rejected", reason: appError, step };
     });
 
-const runLoggedStep = (promise, successMessage, notify) =>
+const runSequenceStep = (promise, step, successMessage, notify) =>
   promise
     .then((value) => {
-      notify(createLogEntry("success", successMessage));
+      notify(
+        createSequenceUpdate(
+          step,
+          "success",
+          typeof successMessage === "function" ? successMessage(value) : successMessage,
+        ),
+      );
       return value;
     })
     .catch((error) => {
       const appError = createAppError(toErrorMessage(error), true);
-      notify(createLogEntry("error", `Error: ${appError.message}`));
+      notify(createSequenceUpdate(step, "error", `Error: ${appError.message}`));
       throw appError;
     });
 
@@ -161,7 +225,7 @@ const ensureNoFailures = (results) => {
   const failure = results.find((result) => result.status === "rejected");
 
   if (failure) {
-    throw failure.reason;
+    throw Object.assign(failure.reason, { step: failure.step });
   }
 
   return results.map((result) => result.value);
@@ -176,16 +240,21 @@ const withTimeout = (promise, ms) =>
   ]);
 
 function iniciarCheckIn(passengerId, notify = () => {}) {
-  notify(createLogEntry("info", "Iniciando validaciones..."));
+  notify([
+    createSequenceUpdate("passport", "active", "Validando pasaporte..."),
+    createSequenceUpdate("visa", "active", "Verificando visa..."),
+  ]);
 
   const validations = Promise.all([
     settleConcurrentStep(
       validarPasaporte(passengerId),
+      "passport",
       "Pasaporte verificado",
       notify,
     ),
     settleConcurrentStep(
       verificarRestriccionesVisa(passengerId),
+      "visa",
       "Visa verificada",
       notify,
     ),
@@ -193,9 +262,13 @@ function iniciarCheckIn(passengerId, notify = () => {}) {
 
   const process = validations
     .then(([passport, visa]) => {
-      notify(createLogEntry("success", "Pasaporte y visa verificados"));
-      notify(createLogEntry("info", "Validaciones completadas. Asignando asiento..."));
-      return runLoggedStep(asignarAsiento(), "Asiento asignado", notify).then(
+      notify(createSequenceUpdate("seat", "active", "Asignando asiento..."));
+      return runSequenceStep(
+        asignarAsiento(),
+        "seat",
+        (seat) => `Asiento asignado: ${seat}`,
+        notify,
+      ).then(
         (seat) => ({
           passengerId,
           passport,
@@ -205,9 +278,10 @@ function iniciarCheckIn(passengerId, notify = () => {}) {
       );
     })
     .then((data) => {
-      notify(createLogEntry("info", "Generando pase de abordar..."));
-      return runLoggedStep(
+      notify(createSequenceUpdate("boardingPass", "active", "Generando pase de abordar..."));
+      return runSequenceStep(
         generarPaseAbordar(data),
+        "boardingPass",
         "Pase de abordar generado",
         notify,
       );
@@ -240,12 +314,8 @@ const renderError = (elements, message) => {
   setStatus(elements, "error", "Con error");
 };
 
-const resetLogs = (elements) => {
-  elements.logSection.innerHTML = createEmptyLogMarkup();
-};
-
-const renderCurrentLog = (elements, entry) => {
-  elements.logSection.innerHTML = createLogMarkup(entry);
+const renderSequence = (elements, sequenceState) => {
+  elements.logSection.innerHTML = createSequenceMarkup(sequenceState);
 };
 
 const renderEmptyBoardingPass = (elements) => {
@@ -272,16 +342,31 @@ const createElements = () => ({
 const handleSubmit = (elements) => (event) => {
   event.preventDefault();
 
+  let sequenceState = createSequenceState();
+  const updateSequence = (updates) => {
+    sequenceState = applySequenceUpdates(sequenceState, updates);
+    renderSequence(elements, sequenceState);
+  };
+
   const passengerId = normalizePassengerId(elements.input.value);
 
   clearError(elements);
   renderEmptyBoardingPass(elements);
-  resetLogs(elements);
+  renderSequence(elements, sequenceState);
 
   if (!isValidPassengerId(passengerId)) {
     const message = "Ingresa un ID numérico mayor a 0.";
 
-    renderCurrentLog(elements, createLogEntry("error", `Error: ${message}`));
+    updateSequence([
+      createSequenceUpdate("passport", "error", `Error: ${message}`),
+      createSequenceUpdate("visa", "blocked", "Pendiente de un ID válido."),
+      createSequenceUpdate("seat", "blocked", "No ejecutado por un error previo."),
+      createSequenceUpdate(
+        "boardingPass",
+        "blocked",
+        "No ejecutado por un error previo.",
+      ),
+    ]);
     renderError(elements, message);
     return;
   }
@@ -289,19 +374,20 @@ const handleSubmit = (elements) => (event) => {
   setBusy(elements, true);
   setStatus(elements, "processing", "Procesando");
 
-  iniciarCheckIn(passengerId, (entry) => renderCurrentLog(elements, entry))
+  iniciarCheckIn(passengerId, updateSequence)
     .then((boardingPass) => {
       renderBoardingPass(elements, boardingPass);
     })
     .catch((error) => {
-      if (!error?.reported) {
-        renderCurrentLog(
-          elements,
-          createLogEntry("error", `Error: ${toErrorMessage(error)}`),
-        );
+      const errorMessage = toErrorMessage(error);
+
+      if (!error?.reported || errorMessage === "Tiempo de espera agotado") {
+        updateSequence(createFailureUpdates(sequenceState, errorMessage));
+      } else {
+        updateSequence(createFailureUpdates(sequenceState, errorMessage));
       }
 
-      renderError(elements, toErrorMessage(error));
+      renderError(elements, errorMessage);
     })
     .finally(() => {
       setBusy(elements, false);
@@ -316,7 +402,7 @@ const initializeApp = () => {
   }
 
   renderEmptyBoardingPass(elements);
-  resetLogs(elements);
+  renderSequence(elements, createSequenceState());
   setStatus(elements, "idle", "Listo");
   elements.form.addEventListener("submit", handleSubmit(elements));
 };
