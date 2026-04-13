@@ -5,7 +5,7 @@
 - Gary Yael Díaz Crisosto <gdiaz1@uc.cl>
 - David Elías Leal Olivares <dlealo@estudiante.uc.cl>
 - Jaime Alejandro Pérez Lisboa <jaime.perez@uc.cl>
-- Larry Andrés Uribe Araya <jlarry@uc.cl>
+- Larry Andrés Uribe Araya <larry@uc.cl>
 
 ## Objetivo del trabajo
 
