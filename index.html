@@ -1,26 +1,75 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>2026-1-t2-g11</title>
+    <title>AsyncAir | Check-in funcional</title>
   </head>
   <body>
-    <h1>AsyncAir</h1>
-    <h2>Check-in</h2>
+    <main class="app-shell">
+      <section class="hero">
+        <p class="eyebrow">AsyncAir Terminal</p>
+        <h1>Check-in asincrónico con validaciones concurrentes.</h1>
+        <p class="hero__copy">
+          Ingresa un ID de pasajero para simular el proceso completo de check-in.
+          El pasaporte y la visa se validan al mismo tiempo; el asiento y el pase
+          se generan solo si las validaciones fueron exitosas.
+        </p>
+      </section>
 
-    <label>
-      ID de pasajero:
-      <input type="text" id="passenger-id" />
-    </label>
-    <button id="passenger-submit">Ingresar</button>
+      <section class="panel panel--form">
+        <form id="checkin-form" class="checkin-form">
+          <label class="field" for="passenger-id">
+            <span>ID de pasajero</span>
+            <input
+              type="number"
+              id="passenger-id"
+              name="passenger-id"
+              min="1"
+              step="1"
+              placeholder="Ej. 13579"
+              required
+            />
+          </label>
+          <button id="passenger-submit" type="submit">Procesar check-in</button>
+        </form>
+        <p class="panel__hint">
+          Regla de prueba: los IDs pares fallan en pasaporte y la visa falla
+          aleatoriamente el 30% de las veces.
+        </p>
+      </section>
 
-    <h2>Boarding Pass</h2>
-    <section id="boarding-pass" />
+      <section class="content-grid">
+        <article class="panel">
+          <div class="section-header">
+            <div>
+              <p class="section-label">Monitoreo</p>
+              <h2>Estado de solicitud</h2>
+            </div>
+            <span id="request-status" class="status-pill" data-state="idle"
+              >Listo</span
+            >
+          </div>
+          <div id="error-banner" class="error-banner" hidden></div>
+          <ul id="log-section" class="log-list" aria-live="polite"></ul>
+        </article>
 
-    <h2>Estado de Solicitud</h2>
-    <section id="log-section" />
+        <article class="panel">
+          <div class="section-header">
+            <div>
+              <p class="section-label">Resultado</p>
+              <h2>Boarding pass</h2>
+            </div>
+          </div>
+          <section
+            id="boarding-pass"
+            class="boarding-pass"
+            aria-live="polite"
+          ></section>
+        </article>
+      </section>
+    </main>
 
     <script type="module" src="/src/main.js"></script>
   </body>
