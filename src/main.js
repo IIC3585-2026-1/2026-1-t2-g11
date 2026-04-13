@@ -106,6 +106,7 @@ function logEstado(logText, color) {
   logContainer.appendChild(logEntry);
 }
 
+
 function mostrarResultado(boardingPass) {
   const html = `<header class="boarding-pass__header">
     <div>
@@ -146,6 +147,14 @@ function mostrarResultado(boardingPass) {
 
 function mostrarError(errorText) {
 	logEstado(errorText, "red");
+  const errorBanner = document.getElementById("error-banner");
+  errorBanner.textContent = errorText;
+  errorBanner.hidden = false;
+
+  setTimeout(() => {
+    errorBanner.hidden = true;
+    errorBanner.textContent = "";
+  }, 5000);
 }
 
 function clearBoardingPass() {
