@@ -198,7 +198,9 @@ button:disabled {
 }
 
 .status-pill {
-  display: inline-flex;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.4rem;
   padding: 0.5rem 0.85rem;

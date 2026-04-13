@@ -88,7 +88,11 @@ function delay(ms) {
 }
 
 function logEstado(logText) {
-  // TODO
+  const logContainer = document.getElementById("request-status");
+  const logEntry = document.createElement("div");
+  logEntry.className = "log-entry";
+  logEntry.textContent = `${new Date().toLocaleTimeString()} - ${logText}`;
+  logContainer.appendChild(logEntry);
 }
 
 function mostrarResultado(boardingPass) {
