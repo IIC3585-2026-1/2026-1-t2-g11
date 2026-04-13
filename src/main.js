@@ -7,8 +7,12 @@ document.getElementById("passenger-submit").onclick = (event) => {
   const submitButton = document.getElementById("passenger-submit");
   submitButton.disabled = true;
 
-  // TODO bonus Promise.race()
-  iniciarCheckIn(passengerId)
+  Promise.race([
+    iniciarCheckIn(passengerId),
+    delay(4000).then(() => {
+      throw new Error("Tiempo de espera agotado");
+    }),
+  ])
     .then((pase) => mostrarResultado(pase))
     .catch((error) => console.log(error) /* mostrarError(error.message)*/)
     .finally(() => (submitButton.disabled = false));
